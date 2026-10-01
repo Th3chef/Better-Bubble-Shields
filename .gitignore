@@ -1,0 +1,12 @@
+# build outputs and game-derived files (the build makes them from the release zip and your game install)
+src/build/
+src/game/
+src/v5-options/
+src/art/out/
+src/art/big/
+src/art/fontsource-*
+src/tools/hd2raw/hd2raw
+src/tools/hd2raw/hd2raw.exe
+__pycache__/
+*.pyc
+*.zip
