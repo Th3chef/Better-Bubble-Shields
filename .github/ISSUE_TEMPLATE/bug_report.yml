@@ -1,0 +1,45 @@
+name: Bug report
+description: Something looks wrong with a shield, or an option doesn't work
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for the report! This mod has no log file, so a screenshot helps the most.
+  - type: input
+    id: version
+    attributes:
+      label: Mod version
+      placeholder: v7
+    validations:
+      required: true
+  - type: textarea
+    id: options
+    attributes:
+      label: Options
+      description: Which shields are ticked, and which Style and Color each one uses.
+      placeholder: "Relay: Clear - Medium, Blue. Shield Generator Pack: Honeycomb, Default."
+    validations:
+      required: true
+  - type: input
+    id: game
+    attributes:
+      label: Game version / date of the last game update
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you expected, what you saw, and which shield (Relay, G/SH-39, Directional, Shield Pack).
+    validations:
+      required: true
+  - type: textarea
+    id: mods
+    attributes:
+      label: Other mods
+      description: Other mods that change shields, effects or stratagems, and your mod manager.
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: Drag screenshots here (vanilla vs. modded helps a lot).
