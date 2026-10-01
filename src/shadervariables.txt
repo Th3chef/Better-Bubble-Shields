@@ -1,0 +1,11 @@
+ColorDamaged 0xf7a19ea6
+ColorTint 0xe7a2c776
+Emissive 0x12a0f5c0
+EmissiveIntensity 0x2f6dc5b
+Intensity 0x32f447e5
+MinEmissive 0xe938de6
+OpacityMult 0x718ea144
+Tex02Intensity 0x77f01efe
+Tint 0xf0d16ec3
+Tint01 0x38e14032
+Tint02 0x3a89b151
