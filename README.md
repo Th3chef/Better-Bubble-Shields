@@ -100,6 +100,12 @@ Everything that builds the release zip is in [`src/`](src) (run the commands fro
 
 `art/make_art.py` makes the thumbnail, header and gallery images (Playwright; see the notes at its top).
 
+## Support
+
+All my mods are free and always will be. Every release is rigorously tested in real missions, highly optimized and kept working through game updates. If you'd like to help me keep that up and build new mods, you can support me on [Patreon](https://www.patreon.com/c/Chefboiardee).
+
+Thank you for diving with me!
+
 ## Credits
 
 - **Muchacho5894**: [Bubble Shields - No honeycomb - No cloud - 0.1 Opacity](https://www.nexusmods.com/helldivers2/mods/14108), the original idea for the Shield Generator Relay. This mod uses its own textures.
