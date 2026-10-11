@@ -1,6 +1,6 @@
 # Changelog
 
-## Next version (in testing)
+## v7.0.1
 - The Invisible style's hit flash now follows the Color option too (it kept the game's color).
 - Every style is now built from the game's own shield material, re-extracted from the game at build time, with only the style's changes applied; the build stops with a plain message if the game changes what a style relies on.
 - Clearer option texts: a Color option recolors the shield's glow and break effects even while the shield option is off; set it to Default to keep that shield vanilla.

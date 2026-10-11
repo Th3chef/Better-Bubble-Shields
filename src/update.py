@@ -107,7 +107,7 @@ def main():
     bub_mats = {key: refs(blob(inputs['bubble_units'][i], UNIT), MATERIAL) for key, i in BUBBLE_OF.items()}
     get([(m, MATERIAL) for m in inputs['fx_materials']] + [(m, MATERIAL) for ms in dev_mats.values() for m in ms]
         + [(m, MATERIAL) for ms in bub_mats.values() for m in ms])
-    # the game materials each style starts from (v8): the bubble model's one material on the bubble shader, and
+    # the game materials each style starts from (v7.0.1): the bubble model's one material on the bubble shader, and
     # the one material on the dome shader among the Pack's own effects
     bases = {key: [m for m in ms if parent(m) == BUBBLE_SHADER] for key, ms in bub_mats.items()}
     pack_mats = {m for i in inputs['fx']['pack'] for m in refs(blob(i, PARTICLES), MATERIAL)}

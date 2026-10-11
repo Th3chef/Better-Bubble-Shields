@@ -4,7 +4,7 @@
 
 **Every bubble shield in Helldivers 2 your way.** Pick a style and one of 11 colors for each shield separately, in your mod manager. The color covers the whole shield: the bubble, its hit flash, the glow on its generator and the effect when it breaks. Formerly *Clear Bubble Shields*.
 
-Current version: **v7** · [Download](https://github.com/Th3chef/Better-Bubble-Shields/releases/latest) (`Better-Bubble-Shields-v7.zip` under Assets, not the source code)
+Current version: **v7.0.1** · [Download](https://github.com/Th3chef/Better-Bubble-Shields/releases/latest) (`Better-Bubble-Shields-v7.0.1.zip` under Assets, not the source code)
 
 ![Gallery](media/gallery.png)
 
@@ -48,9 +48,9 @@ Each shield has two options in your mod manager:
 
 ## Install / update
 
-**Mod manager (recommended):** add `Better-Bubble-Shields-v7.zip` to Arsenal, open the mod's options, tick the shields you want, pick a style and a color for each, then confirm and deploy.
+**Mod manager (recommended):** add `Better-Bubble-Shields-v7.0.1.zip` to Arsenal, open the mod's options, tick the shields you want, pick a style and a color for each, then confirm and deploy.
 
-**Updating from v6:** it installs as an update and your settings stay; deploy again so the new color files are used.
+**Updating:** it installs as an update and your settings stay; then Purge and Deploy.
 **Updating from Clear Bubble Shields v5 or older:** it's the same mod, so it installs as an update. The options changed, so open them and pick your settings again.
 
 **Manual:** every option folder in the zip holds a set of three patch files, all named `9ba626afa44a3aa3.patch_0`. For each shield you want, copy into `Helldivers 2\data`: its `Textures` set, one `Style` set and optionally one `Color` set. Rename each set to the next free patch number (`patch_0`, `patch_1`, ...), keeping the three files of a set on the same number. The Color set must get a higher number than the Style set.
@@ -94,11 +94,11 @@ Everything that builds the release zip is in [`src/`](src) (run the commands fro
 
 1. Python 3 with Pillow and NumPy. Go 1.25+ to build the extractor.
 2. Build the extractor (`src/tools/hd2raw`, a small lister/extractor on top of [Filediver](https://github.com/xypwn/filediver)'s reader); see `src/tools/hd2raw/README.txt`.
-3. `python tools/unpack_release.py Better-Bubble-Shields-v7.zip` recreates `v5-options/` from the release zip: the mod's own textures, plus old copies of the style materials that are only used while `game/` has no copy of the game's own yet.
+3. `python tools/unpack_release.py Better-Bubble-Shields-v7.0.1.zip` recreates `v5-options/` from the release zip: the mod's own textures, plus old copies of the style materials that are only used while `game/` has no copy of the game's own yet.
 4. `python update.py "<Helldivers 2>/data"` finds and extracts the game files the build needs into `game/`, including the game materials each style starts from, and checks that the Shield Generator Pack materials the mod changes are used only by the Pack. Exit code 0 = no update needed, 2 = the game's files changed (rebuild), 1 = needs a person.
 5. `python build_v7.py`, `python icons_v7.py`, then `python make_zip.py`, which zips `build/` reproducibly (sorted names, fixed dates and permissions) into the zip named in the manifest.
 
-On the same game files the patch files and `manifest.json` come out byte for byte the same as the release. The images (thumbnail and option icons) depend on your Pillow and zlib versions, so the whole zip matches a release made with `make_zip.py` (v8 and later) byte for byte only with the same Pillow and zlib; two builds on one machine always give the same zip.
+On the same game files the patch files and `manifest.json` come out byte for byte the same as the release. The images (thumbnail and option icons) depend on your Pillow and zlib versions, so the whole zip matches a release made with `make_zip.py` (v7.0.1 and later) byte for byte only with the same Pillow and zlib; two builds on one machine always give the same zip.
 
 `art/make_art.py` makes the thumbnail, header and gallery images (Playwright; see the notes at its top).
 
