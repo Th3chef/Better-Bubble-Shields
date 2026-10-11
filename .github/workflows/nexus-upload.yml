@@ -47,7 +47,7 @@ jobs:
           fi
           # the release must be published and not a pre-release (a by-hand run can name any tag)
           [ "$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft,isPrerelease -q '.isDraft or .isPrerelease')" = false ] || { echo "::error::$TAG is a draft or a pre-release: not uploaded."; exit 1; }
-          # tags are v7, v8, ...; the zip is Better-Bubble-Shields-v7.zip and the Nexus version is 7
+          # tags are v7, v7.0.1, v8, ...; the zip is Better-Bubble-Shields-v7.0.1.zip and the Nexus version is 7.0.1
           VERSION="${TAG#v}"
           FILE="Better-Bubble-Shields-${TAG}.zip"
           gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern "$FILE"

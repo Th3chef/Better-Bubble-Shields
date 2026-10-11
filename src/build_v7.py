@@ -1,6 +1,6 @@
 """Better Bubble Shields (formerly Clear Bubble Shields): per shield a Style dropdown and a separate Color dropdown.
 v7: the Color option also recolors the generator glow, the bubble hit flash and the break effect.
-v8: every style is built from the game's own material (re-extracted by update.py) with the style's recipe applied;
+v7.0.1: every style is built from the game's own material (re-extracted by update.py) with the style's recipe applied;
     the Invisible style follows the Color option too.
 
 How the two dropdowns stay independent (Arsenal can't merge two options into one file):
@@ -24,7 +24,7 @@ from particles import systems, gradients
 from update import KNOWN_FX
 
 V5, GAME, OUT = 'v5-options', 'game', 'build'
-VERSION = 'v8'
+VERSION = 'v7.0.1'
 PARTICLES = 0xa8193123526fad64
 TEXTURE = 0xcd4238c6a0c69e32
 INPUTS = json.load(open('game/inputs.json'))   # written by update.py from the live game
@@ -165,7 +165,7 @@ _reported = set()
 def style_material(base, folder, src, shader, tex, var_names, tuned):
     """the material a style starts from: the game's own material (re-extracted by update.py) with the style's
     texture slots set. Falls back to the v5 copy only while game/ has no copy of it yet (game/ made by an update.py
-    older than v8); that copy is checked against the game's material whenever one is there. tuned = variables
+    older than v7.0.1); that copy is checked against the game's material whenever one is there. tuned = variables
     the build sets afterwards (left out of the v5-copy comparison)."""
     gpath = f'{GAME}/0x{base:016x}.{MATERIAL:016x}.main'
     v5 = v5_material(folder, src); key = (base, folder, src)
@@ -187,7 +187,7 @@ def style_material(base, folder, src, shader, tex, var_names, tuned):
     if v5 is None: fail(f'no copy of material {base:016x} in game/ or {V5}/: run update.py (it extracts it from your game)')
     if key not in _reported:
         _reported.add(key)
-        print(f'WARNING: game/ has no copy of material {base:016x} (made by an update.py older than v8): {folder}/{src} '
+        print(f'WARNING: game/ has no copy of material {base:016x} (made by an update.py older than v7.0.1): {folder}/{src} '
               'is built from its v5 copy, which could not be checked against the game. Run update.py to fix this.')
     check_hooks(v5, f'{V5}/{folder}/{src}', shader, tex, var_names)
     for slot, t in tex.items():
@@ -374,7 +374,7 @@ def build():
                             'Image': f'images/{key}_color_default.png', 'Include': [f'{F}/Textures']})
         for cname, rgb in COLORS:
             ents = []; bub = sh.get('bubble')
-            for style in (STYLES if bub else []):      # Invisible too: its hit flash follows the color (v8)
+            for style in (STYLES if bub else []):      # Invisible too: its hit flash follows the color (v7.0.1)
                 ents.append(bubble_material(bub, style, rgb))
             fx_ents, fx_log = fx_entries(key, cname, rgb)
             ents += fx_ents; log += [(F, cname) + x for x in fx_log]

@@ -2,7 +2,7 @@
 permissions (files 644, folders 755), one compression setting (deflate, level 9). The same build/ always gives the
 same zip bytes (with the same zlib).
 
-  python make_zip.py [out.zip]     default: the name in build/manifest.json, e.g. Better-Bubble-Shields-v8.zip
+  python make_zip.py [out.zip]     default: the name in build/manifest.json, e.g. Better-Bubble-Shields-v7.0.1.zip
 """
 import json, os, sys, zipfile
 
@@ -10,8 +10,8 @@ BUILD = 'build'
 DATE = (1980, 1, 1, 0, 0, 0)
 
 def zip_name():
-    name = json.load(open(f'{BUILD}/manifest.json'))['Name']          # 'Better Bubble Shields - v8 Test 1'
-    return name.replace(' - ', ' ').replace(' ', '-') + '.zip'        # 'Better-Bubble-Shields-v8-Test-1.zip'
+    name = json.load(open(f'{BUILD}/manifest.json'))['Name']          # 'Better Bubble Shields - v7.0.1 Test 1'
+    return name.replace(' - ', ' ').replace(' ', '-') + '.zip'        # 'Better-Bubble-Shields-v7.0.1-Test-1.zip'
 
 def entry(name, is_dir):
     zi = zipfile.ZipInfo(name, DATE)
