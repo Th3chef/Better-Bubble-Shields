@@ -1,12 +1,14 @@
-"""Recreate v5-options/ (the bubble/dome materials each style starts from, and the mod's own 1x1 textures) from a
-release zip, so the repository doesn't have to store game-derived materials.
+"""Recreate v5-options/ (the mod's own 1x1 textures, plus the old copies of the bubble/dome materials each style
+starts from) from a release zip, so the repository doesn't have to store game-derived materials.
 
   python tools/unpack_release.py Better-Bubble-Shields-v7.zip
 
-build_v7.py only changes OpacityMult / the Pack dome brightness / the colours on top of these, so the materials
+Since v8 the build starts every style from the game's own material (update.py extracts it into game/); the old
+material copies are only used while game/ has no copy yet, and are then checked against the recipe. build_v7.py
+only changes texture slots, OpacityMult, the Pack dome brightness and the colors on top of them, so the materials
 taken from any v6 or newer release rebuild that release byte for byte.
 """
-import io, os, sys, zipfile
+import os, sys, zipfile
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 from hd2_patch import MATERIAL, resource_hash, read_archive, write_archive
 

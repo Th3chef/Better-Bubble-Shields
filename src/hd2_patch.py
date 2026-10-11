@@ -31,6 +31,8 @@ def read_archive(path):
 DEFAULT_HEADER = bytes.fromhex('00000000ce09f5f400000000a05345216b807fe000af620300000000008f660000000000000000000000000000000000000000000000000000000000')
 
 def write_archive(path, entries, header_from=None):
+    for e in entries:   # this writer has no .stream support: never drop stream data silently
+        if e.get('stream'): raise ValueError('%016x has .stream data, which write_archive cannot write' % e['fid'])
     hdr = open(header_from, 'rb').read()[12:72] if header_from else DEFAULT_HEADER
     unknown, unk56 = struct.unpack_from('<I', hdr, 0)[0], hdr[4:60]
     order = [MATERIAL, TEXTURE, UNIT]

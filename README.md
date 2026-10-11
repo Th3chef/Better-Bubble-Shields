@@ -39,7 +39,7 @@ Colors are brightness-matched, so blue and purple look as bright as the game's d
 
 Each shield has two options in your mod manager:
 - **The shield option** (for example *FX-12 Shield Generator Relay*): tick it to change that shield and pick its style. Untick it to keep the shield vanilla.
-- **The Color option** (for example *Relay - Color*): pick the color. It needs the shield option above it turned on.
+- **The Color option** (for example *Relay - Color*): pick the color. The bubble's color needs the shield option above it turned on; the glow and break effects follow the Color option on its own. To keep a shield vanilla, untick its shield option and set its Color to Default.
 
 ## Requirements
 
@@ -61,18 +61,18 @@ Disable or remove the mod in your mod manager and deploy, or delete the patch fi
 
 ## Compatibility
 
-- Conflicts with other mods that change the same shields: the bubble models of the Relay, G/SH-39 Shield and Directional Shield, the Shield Generator Pack's dome effect and, with a color picked, the shields' generator glow and break effects. Whichever mod loads last wins for that shield. Untick a shield here to leave it to the other mod.
+- Conflicts with other mods that change the same shields: the bubble models of the Relay, G/SH-39 Shield and Directional Shield, the Shield Generator Pack's dome effect and, with a color picked, the shields' generator glow and break effects. Whichever mod loads last wins for that shield. To leave a shield to the other mod, untick it here **and** set its Color option to Default (a picked color still recolors that shield's glow and break effects).
 - Does not touch armor, weapons, backpack models or any other visuals. The effect materials the shields share with other effects in the game are never changed: the mod uses its own recolored copies.
 - Built for the September 2026 game version. After a game update the build checks the game's shield files and is rebuilt from them in one step if they changed.
 
 ## Known limitations
 
 - The Shield Generator Pack's bubble is the same model as the Relay and G/SH-39 bubbles, so the Pack's bubble and its hit flash follow those shields' Style and Color. The Pack's own options cover its glowing dome layer, the glow on the backpack and its break effect.
-- A Color option does nothing while its shield option is off.
+- A Color option still recolors the shield's glow and break effects while its shield option is off (mod managers can't make one option depend on another). Set it to Default to keep that shield vanilla.
 
 ## How it works
 
-Each shield's bubble model is pointed at the mod's own materials, one per style, so the style and the color can be picked in separate dropdowns. The honeycomb and cloud texture slots use tiny plain textures of the mod's own. The Shield Generator Pack's dome is a particle effect, so its color is set in that effect and its brightness in its materials. A Color option also sets the bubble's hit-flash color and ships the shield's own glow and break effects with their colors changed; the materials those effects share with other effects are pointed at the mod's own recolored copies, so nothing outside these shields changes.
+Each shield's bubble model is pointed at the mod's own materials, one per style, so the style and the color can be picked in separate dropdowns. Every style starts from the game's own shield material, taken from your game when the mod is built, with only the style's changes applied. The honeycomb and cloud texture slots use tiny plain textures of the mod's own. The Shield Generator Pack's dome is a particle effect, so its color is set in that effect and its brightness in its materials. A Color option also sets the bubble's hit-flash color and ships the shield's own glow and break effects with their colors changed; the materials those effects share with other effects are pointed at the mod's own recolored copies, so nothing outside these shields changes.
 
 | Shield | Vanilla | Better Bubble Shields |
 |---|---|---|
@@ -82,7 +82,7 @@ Each shield's bubble model is pointed at the mod's own materials, one per style,
 
 ## Troubleshooting
 
-- **A color doesn't show:** make sure the shield's own option (the one with the style) is ticked too. The Color option needs it.
+- **A color doesn't show on the bubble:** make sure the shield's own option (the one with the style) is ticked too. The bubble's color needs it.
 - **Nothing changes:** deploy again in your mod manager after changing options, and check that no other shield mod loads after this one.
 - **Shields look wrong after a game update:** the update may have changed the shields. [Open a bug report](https://github.com/Th3chef/Better-Bubble-Shields/issues/new/choose) with a screenshot; the mod is rebuilt from the new game files in one step.
 
@@ -94,9 +94,11 @@ Everything that builds the release zip is in [`src/`](src) (run the commands fro
 
 1. Python 3 with Pillow and NumPy. Go 1.25+ to build the extractor.
 2. Build the extractor (`src/tools/hd2raw`, a small lister/extractor on top of [Filediver](https://github.com/xypwn/filediver)'s reader); see `src/tools/hd2raw/README.txt`.
-3. `python tools/unpack_release.py Better-Bubble-Shields-v7.zip` recreates `v5-options/` (the base materials each style starts from and the mod's own textures) from the release zip.
-4. `python update.py "<Helldivers 2>/data"` finds and extracts the game files the build needs into `game/`. Exit code 0 = no update needed, 2 = the game's files changed (rebuild), 1 = needs a person.
-5. `python build_v7.py` then `python icons_v7.py`, and zip the contents of `build/`. On the September 2026 game this rebuilds `Better-Bubble-Shields-v7.zip` byte for byte.
+3. `python tools/unpack_release.py Better-Bubble-Shields-v7.zip` recreates `v5-options/` from the release zip: the mod's own textures, plus old copies of the style materials that are only used while `game/` has no copy of the game's own yet.
+4. `python update.py "<Helldivers 2>/data"` finds and extracts the game files the build needs into `game/`, including the game materials each style starts from, and checks that the Shield Generator Pack materials the mod changes are used only by the Pack. Exit code 0 = no update needed, 2 = the game's files changed (rebuild), 1 = needs a person.
+5. `python build_v7.py`, `python icons_v7.py`, then `python make_zip.py`, which zips `build/` reproducibly (sorted names, fixed dates and permissions) into the zip named in the manifest.
+
+On the same game files the patch files and `manifest.json` come out byte for byte the same as the release. The images (thumbnail and option icons) depend on your Pillow and zlib versions, so the whole zip matches a release made with `make_zip.py` (v8 and later) byte for byte only with the same Pillow and zlib; two builds on one machine always give the same zip.
 
 `art/make_art.py` makes the thumbnail, header and gallery images (Playwright; see the notes at its top).
 

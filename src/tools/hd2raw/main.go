@@ -2,9 +2,11 @@
 // usage: hd2raw <gamedata> index <out.tsv>
 //
 //	hd2raw <gamedata> get <outdir> <namehex.typehex>...
-//	hd2raw <gamedata> grep <typehex> <hexpattern>[,<hexpattern>...]   (searches main data of all files of a type)
-//	hd2raw <gamedata> serve        (reads "index ..." / "get ..." lines on stdin, answers "ok <n>" or "error <msg>";
-//	                                the game's file table is read once for the whole session)
+//	hd2raw <gamedata> grep <typehex> <hexpattern>[,<hexpattern>...] [<out.tsv>]
+//	                               (searches main data of all files of a type; prints, or writes to out.tsv,
+//	                                id, name and pattern number per match; fails if any file can't be read)
+//	hd2raw <gamedata> serve        (reads "index ..." / "get ..." / "grep ... <out.tsv>" lines on stdin, answers
+//	                                "ok <n>" or "error <msg>"; the game's file table is read once for the whole session)
 //
 // Exit code 1 on any error (missing files included).
 package main
@@ -36,12 +38,16 @@ type tool struct {
 
 func (t *tool) nm(h stingray.Hash) string { return t.names[h.Value] }
 
-func (t *tool) index(out string) (int, error) {
+func (t *tool) index(out string) (n int, err error) {
 	f, err := os.Create(out)
 	if err != nil {
 		return 0, err
 	}
-	defer f.Close()
+	defer func() {
+		if cerr := f.Close(); err == nil {
+			err = cerr
+		}
+	}()
 	w := bufio.NewWriter(f)
 	for id, infos := range t.d.Files {
 		var arcs []string
@@ -96,37 +102,62 @@ func (t *tool) get(out string, ids []string) (int, error) {
 	return n, nil
 }
 
-func (t *tool) grep(typS, patS string) error {
+func (t *tool) grep(typS, patS, out string) (n int, err error) {
 	typ, err := ph(typS)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	var pats [][]byte
 	for _, s := range strings.Split(patS, ",") {
 		b, err := hex.DecodeString(s)
 		if err != nil {
-			return err
+			return 0, err
 		}
 		pats = append(pats, b)
 	}
+	dst := os.Stdout
+	if out != "" {
+		f, err := os.Create(out)
+		if err != nil {
+			return 0, err
+		}
+		defer func() {
+			if cerr := f.Close(); err == nil {
+				err = cerr
+			}
+		}()
+		dst = f
+	}
+	w := bufio.NewWriter(dst)
+	searched, failed := 0, 0
 	for id := range t.d.Files {
 		if id.Type != typ {
 			continue
 		}
+		searched++
 		b, err := t.d.Read(id, stingray.DataMain)
 		if err != nil {
+			failed++
+			fmt.Fprintf(os.Stderr, "grep: %016x: %v\n", id.Name.Value, err)
 			continue
 		}
 		for i, p := range pats {
 			if bytes.Contains(b, p) {
-				fmt.Printf("%016x\t%s\tpat%d\n", id.Name.Value, t.nm(id.Name), i)
+				fmt.Fprintf(w, "%016x\t%s\tpat%d\n", id.Name.Value, t.nm(id.Name), i)
+				n++
 			}
 		}
 	}
-	return nil
+	if err := w.Flush(); err != nil {
+		return n, err
+	}
+	if failed > 0 {
+		return n, fmt.Errorf("grep: %d of %d files could not be read, so the search is incomplete", failed, searched)
+	}
+	return n, nil
 }
 
-func (t *tool) run(args []string) (int, error) {
+func (t *tool) run(args []string, serving bool) (int, error) {
 	if len(args) == 0 {
 		return 0, fmt.Errorf("no command")
 	}
@@ -142,10 +173,13 @@ func (t *tool) run(args []string) (int, error) {
 		}
 		return t.get(args[1], args[2:])
 	case "grep":
-		if len(args) != 3 {
-			return 0, fmt.Errorf("usage: grep <typehex> <hexpatterns>")
+		if len(args) == 3 && !serving {
+			return t.grep(args[1], args[2], "")
 		}
-		return 0, t.grep(args[1], args[2])
+		if len(args) != 4 {
+			return 0, fmt.Errorf("usage: grep <typehex> <hexpatterns> <out.tsv> (the output file is required in serve mode)")
+		}
+		return t.grep(args[1], args[2], args[3])
 	}
 	return 0, fmt.Errorf("unknown command %q", args[0])
 }
@@ -169,16 +203,20 @@ func main() {
 		sc.Buffer(make([]byte, 1<<20), 1<<24)
 		fmt.Println("ready")
 		for sc.Scan() {
-			n, err := t.run(strings.Fields(sc.Text()))
+			n, err := t.run(strings.Fields(sc.Text()), true)
 			if err != nil {
 				fmt.Println("error", err)
 			} else {
 				fmt.Println("ok", n)
 			}
 		}
+		if err := sc.Err(); err != nil {
+			fmt.Fprintln(os.Stderr, "error: reading commands:", err)
+			os.Exit(1)
+		}
 		return
 	}
-	if _, err := t.run(os.Args[2:]); err != nil {
+	if _, err := t.run(os.Args[2:], false); err != nil {
 		fmt.Fprintln(os.Stderr, "error:", err)
 		os.Exit(1)
 	}

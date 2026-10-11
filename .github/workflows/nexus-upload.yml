@@ -2,6 +2,7 @@
 # Needs the repository secret NEXUSMODS (your Nexus Mods API key; Settings, Secrets and variables, Actions).
 # Without it the run stops with a message and nothing is uploaded.
 # Run it by hand from the Actions tab (Run workflow) to upload an existing release again.
+# Drafts and pre-releases are never uploaded.
 name: Upload release to Nexus Mods
 
 on:
@@ -23,6 +24,8 @@ env:
 
 jobs:
   nexus:
+    # a published pre-release (a test build) never goes to Nexus
+    if: ${{ github.event_name != 'release' || !github.event.release.prerelease }}
     runs-on: ubuntu-latest
     steps:
       - name: Check the API key is set
@@ -38,10 +41,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft -q .isDraft >/dev/null 2>&1; then
+          if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json tagName >/dev/null 2>&1; then
             echo "::error::No published release with the tag $TAG. A draft has no tag yet: publish the release (that runs this workflow by itself), or run it by hand with the tag of a release that is already published."
             exit 1
           fi
+          # the release must be published and not a pre-release (a by-hand run can name any tag)
+          [ "$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft,isPrerelease -q '.isDraft or .isPrerelease')" = false ] || { echo "::error::$TAG is a draft or a pre-release: not uploaded."; exit 1; }
           # tags are v7, v8, ...; the zip is Better-Bubble-Shields-v7.zip and the Nexus version is 7
           VERSION="${TAG#v}"
           FILE="Better-Bubble-Shields-${TAG}.zip"

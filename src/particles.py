@@ -1,14 +1,19 @@
 import struct
 S = 10000.0
+
 def systems(d):
+    """the particle systems of an effect file: a count at 24, then from 80 one record per system whose size sits at
+    +256. Raises ValueError when the counts and sizes don't add up to the file (the format changed)."""
+    if len(d) < 80: raise ValueError(f'only {len(d)} bytes: too short for an effect file')
     ns, = struct.unpack_from('<I', d, 24)
     o = 80; out = []
     for i in range(ns):
-        maxp, nc = struct.unpack_from('<II', d, o)
-        unk3, = struct.unpack_from('<I', d, o + 76)
-        clo, cls, off3, size = [struct.unpack_from('<I', d, o + k)[0] for k in (232, 240, 252, 256)]
-        out.append(dict(start=o, end=o + size, maxp=maxp, nc=nc, render=unk3 != 0xffffffff))
+        if o + 260 > len(d): raise ValueError(f'system {i} of {ns} starts at {o}, past the end of the file ({len(d)} bytes)')
+        size, = struct.unpack_from('<I', d, o + 256)
+        if size == 0 or o + size > len(d): raise ValueError(f'system {i} of {ns} at {o} has size {size} (file {len(d)} bytes)')
+        out.append(dict(start=o, end=o + size))
         o += size
+    if o != len(d): raise ValueError(f'{ns} systems end at {o}, but the file has {len(d)} bytes')
     return out, o
 
 def gradients(d, a, b):
