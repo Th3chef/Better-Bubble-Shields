@@ -8,4 +8,5 @@ Build (Linux, Go 1.25+):
 Use:
   hd2raw <game data folder> index out.tsv          (id, type, name, type name, main/stream/gpu sizes, archives)
   hd2raw <game data folder> get <outdir> <id.type>...
-  hd2raw <game data folder> grep <typehex> <hexpattern>[,<hexpattern>...]
+  hd2raw <game data folder> grep <typehex> <hexpattern>[,<hexpattern>...] [out.tsv]   (fails if any file can't be read)
+  hd2raw <game data folder> serve     (index / get / grep ... out.tsv lines on stdin; update.py uses this)

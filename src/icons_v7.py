@@ -79,7 +79,6 @@ def rim_color(c, name): return (95, 95, 105) if name == 'Dark' else tuple(min(25
 
 def icon(key, style, color='Default', rainbow=False, size=256):
     im = background()
-    behind = key == 'directional'          # the helldiver stands behind the oval, drawn first
     glow = (255, 214, 20) if color == 'Default' or rainbow else (70, 70, 80) if color == 'Dark' else SHOW[color]
     device(im, key, glow)
     if style == 'Invisible':
