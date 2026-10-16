@@ -2,6 +2,9 @@
 v7: the Color option also recolors the generator glow, the bubble hit flash and the break effect.
 v7.0.1: every style is built from the game's own material (re-extracted by update.py) with the style's recipe applied;
     the Invisible style follows the Color option too.
+v7.0.2: the Shield Pack's Color option also recolors the Pack's own hit flash (its shield model has its own
+    hit-flash material; it was always the game's yellow). The Pack Style option no longer changes the look of the
+    three Illuminate effects that share the Pack's edge material (they are shipped pointed at an untouched copy).
 
 How the two dropdowns stay independent (Arsenal can't merge two options into one file):
   Relay & G/SH-39, Directional: the Style option ships the shield's unit(s) re-pointed to our own
@@ -24,7 +27,7 @@ from particles import systems, gradients
 from update import KNOWN_FX
 
 V5, GAME, OUT = 'v5-options', 'game', 'build'
-VERSION = 'v7.0.1'
+VERSION = 'v7.0.2'
 PARTICLES = 0xa8193123526fad64
 TEXTURE = 0xcd4238c6a0c69e32
 INPUTS = json.load(open('game/inputs.json'))   # written by update.py from the live game
@@ -78,10 +81,10 @@ COLORS = [  # name, normalized RGB (max channel 1)
 ]
 STYLES = ['Honeycomb', 'Clear - Medium', 'Clear - Low', 'Invisible']   # menu order (Honeycomb is the default)
 STYLE_TEXT = {
-    'Clear - Medium': 'No honeycomb or cloud, just an even tint at 50% opacity so you can still tell where the shield is.',
-    'Clear - Low': 'No honeycomb or cloud, a faint tint at 25% opacity.',
-    'Honeycomb': 'Keeps the honeycomb but removes the swirling cloud and ripple, and is more see-through.',
-    'Invisible': 'The bubble is completely invisible. The generator glow, hit flash and break effect stay (they follow the Color option).',
+    'Clear - Medium': 'Even tint, 50% opacity.',
+    'Clear - Low': 'Faint tint, 25% opacity.',
+    'Honeycomb': 'Honeycomb kept, no cloud or ripple, more see-through.',
+    'Invisible': 'Hidden. Its effects still show.',
 }
 
 # ---- the materials each style starts from ------------------------------------------------------------------------
@@ -90,6 +93,8 @@ STYLE_TEXT = {
 BASES = {'relay': 0xbf6c75e150316e2a, 'grenade': 0xbf6c75e150316e2a, 'directional': 0x9952274912730c5c, 'pack': 0xb97ca0894d4ac8ff}
 BASES.update({k: int(v, 16) for k, v in INPUTS.get('base_materials', {}).items()})
 BUBBLE_SHADER, DOME_SHADER = 0x717b4e0431528b44, 0xc9373e9ef86d372c
+HIT_SHADER = 0x710c537aa172aa6c   # the Pack's own shield model: a hit-flash-only layer
+PACK_HIT = int(INPUTS['pack_hit_material'], 16) if INPUTS.get('pack_hit_material') else None   # found by update.py (v7.0.2)
 
 # the mod's own 1x1 textures (v5-options/<shield>/Textures)
 TEX_BLACK = resource_hash('mods/clear_bubble_shields/black')         # (0, 0, 0, 255)
@@ -122,21 +127,22 @@ EDGE_SCALE = {'Clear - Medium': 1.0, 'Clear - Low': 0.5, 'Honeycomb': 1.0, 'Invi
 
 # 'bubble': the shield's bubble model, re-pointed to our own materials 'mods/clear_bubble_shields/<fam>/<style>'.
 # Found in game (Test 5): model 0x274d... is the G/SH-39 grenade's bubble, 0xc6e9... is the Relay's dome.
-# The Shield Generator Pack's bubble reuses one of those two models, so it follows that shield's settings;
-# the Pack's own options drive its particle layers (glowing dome texture and the line along the top).
+# The Shield Generator Pack has its own shield model (found in the game's shield settings, v7.0.2): a layer that only
+# glows where it's hit, with its own material; the Pack's Color option recolors it in place (nothing else uses it).
+# The Pack's own options also drive its particle layers (glowing dome texture and the line along the top).
 SHIELDS = [
     dict(folder='Relay', key='relay', short='Relay', textures='Relay and GSH-39',
-         name='FX-12 Shield Generator Relay', desc='The deployable Shield Generator Relay dome.', colored='the bubble, its hit flash, the glow on the generator and the break effect',
+         name='FX-12 Shield Generator Relay', desc='Style of the Relay dome.', colored='bubble, hit flash, generator glow, break effect',
          bubble=dict(units=[(0xc6e942a840ef3e09, 'c6e942a840ef3e09')], vanilla_mat=BASES['relay'], src='Relay and GSH-39', fam='relay')),
     dict(folder='GSH-39 Shield', key='grenade', short='G/SH-39 Shield', textures='Relay and GSH-39',
-         name='G/SH-39 Shield', desc='The bubble of the G/SH-39 Shield grenade.', colored='the bubble, its hit flash, the glow on the grenade and the break effect',
+         name='G/SH-39 Shield', desc='Style of the G/SH-39 bubble.', colored='bubble, hit flash, grenade glow, break effect',
          bubble=dict(units=[(0x274d3f4191c8320c, '274d3f4191c8320c')], vanilla_mat=BASES['grenade'], src='Relay and GSH-39', fam='grenade')),
     dict(folder='Directional Shield', key='directional', short='Directional Shield', textures='Directional Shield',
-         name='SH-51 Directional Shield', desc='The shield panel of the SH-51 Directional Shield backpack.', colored='the shield panel, its hit flash and the break effect',
+         name='SH-51 Directional Shield', desc='Style of the shield panel.', colored='panel, hit flash, break effect',
          bubble=dict(units=[(resource_hash('content/fac_helldivers/equipment/backpacks/directional_energy_shield/directional_energy_shield'), 'b56fa3f5510000ab')],
                      vanilla_mat=BASES['directional'], src='Directional Shield', fam='directional')),
     dict(folder='Shield Generator Pack', key='pack', short='Shield Generator Pack', textures='Shield Generator Pack',
-         name='SH-32 Shield Generator Pack', desc="The SH-32 Shield Generator Pack's glowing dome layer and the line along its top.", colored='the dome, the glow on the backpack and the break effect',
+         name='SH-32 Shield Generator Pack', desc='Style of the Pack dome.', colored='dome, hit flash, backpack glow, break effect',
          dome_mat=BASES['pack'],
          # the glowing line along the top of the Pack dome: two particle layers with their own materials
          edge_mats=[(0x4aa3db36d543a125, ('Emissive', 'MinEmissive')), (0xff5ae79ce33fd342, ('EmissiveIntensity', 'MinEmissive'))]),
@@ -335,6 +341,38 @@ def fx_entries(key, cname, rgb):
     if not any(x[1] for x in log if x[2] == 'keys'): fail(f'{key}: no effect color keys found')
     return ents, log
 
+def pack_hit_material(rgb):
+    """the Pack's hit-flash material (its own shield model's only material) with its color changed. Nothing else in
+    the game uses it (update.py checks), so it is changed in place."""
+    if PACK_HIT is None: fail("game/ has no Pack hit-flash material: run update.py (v7.0.2 or newer)")
+    m = bytearray(game(PACK_HIT, MATERIAL)); parent, _, _ = layout(m); v = material_vars(m)
+    if parent != HIT_SHADER or 'ShieldColor' not in v or v['ShieldColor'][1] != 3:
+        fail(f'Pack hit-flash material {PACK_HIT:016x}: parent shader {parent:016x} or its ShieldColor changed: check the recipe')
+    put(m, v, 'ShieldColor', bubble_color(get(m, v, 'ShieldColor'), rgb))
+    return dict(fid=PACK_HIT, tid=MATERIAL, data=bytes(m))
+
+def pack_shared_entries():
+    """v7.0.2: the effects outside the Pack that use a material the Pack Style option changes in place (on the October
+    2026 game: three Illuminate effects use the Pack's edge material), pointed at an untouched copy of that material
+    'mods/clear_bubble_shields/vanilla/<id>', so they keep the game's look whatever Pack style is picked."""
+    if 'pack_shared_fx' not in INPUTS: fail('game/inputs.json was made by an update.py older than v7.0.2: run update.py')
+    ents, copies = [], {}
+    for pid, mats in INPUTS['pack_shared_fx'].items():
+        d = bytearray(game(pid, PARTICLES))
+        for mid in mats:
+            old = struct.pack('<Q', int(mid, 16))
+            spots = [o for o in range(0, len(d) - 7, 4) if d[o:o + 8] == old]   # references sit on 4-byte boundaries
+            if not spots or len(spots) != bytes(d).count(old):
+                fail(f'effect {pid}: material {mid} found {len(spots)} times as a reference, {bytes(d).count(old)} in all')
+            copies[mid] = resource_hash(f'mods/clear_bubble_shields/vanilla/{mid}')
+            for o in spots: struct.pack_into('<Q', d, o, copies[mid])
+        ents.append(dict(fid=int(pid, 16), tid=PARTICLES, data=bytes(d)))
+    for mid, new in sorted(copies.items()):
+        e = dict(fid=new, tid=MATERIAL, data=game(mid, MATERIAL))
+        if os.path.exists(f'{GAME}/0x{mid}.{MATERIAL:016x}.gpu'): e['gpu'] = game(mid, MATERIAL, 'gpu')
+        ents.append(e)
+    return ents
+
 def write(folder, entries):
     os.makedirs(folder, exist_ok=True)
     write_archive(f'{folder}/{PATCH}', entries, header_from=f'{V5}/Relay and GSH-39/Textures/{PATCH}')
@@ -349,6 +387,7 @@ def build():
         F, key = sh['folder'], sh['key']
         shutil.copytree(f"{V5}/{sh['textures']}/Textures", f'{OUT}/{F}/Textures')
         style_subs, color_subs = [], []
+        shared = pack_shared_entries() if key == 'pack' else []   # v7.0.2: other effects keep the game's look
         for style in STYLES:
             bub = sh.get('bubble'); ents = []
             for uid, fname in (bub['units'] if bub else []):
@@ -367,6 +406,7 @@ def build():
                 m = bytearray(game(eid, MATERIAL)); v = material_vars(m)
                 for name in vars_: put(m, v, name, tuple(x * EDGE_SCALE[style] for x in get(m, v, name)))
                 ents.append(dict(fid=eid, tid=MATERIAL, data=bytes(m)))
+            ents += shared
             write(f'{OUT}/{F}/Style/{style}', ents)
             style_subs.append({'Name': style, 'Description': STYLE_TEXT[style],
                                'Image': f'images/{key}_style_{slug(style)}.png', 'Include': [f'{F}/Style/{style}']})
@@ -376,26 +416,23 @@ def build():
             ents = []; bub = sh.get('bubble')
             for style in (STYLES if bub else []):      # Invisible too: its hit flash follows the color (v7.0.1)
                 ents.append(bubble_material(bub, style, rgb))
+            if key == 'pack':                        # the Pack's own hit flash (v7.0.2)
+                ents.append(pack_hit_material(rgb)); log.append((F, cname, '%016x' % PACK_HIT, ['ShieldColor'], 'hit flash'))
             fx_ents, fx_log = fx_entries(key, cname, rgb)
             ents += fx_ents; log += [(F, cname) + x for x in fx_log]
             write(f'{OUT}/{F}/Color/{cname}', ents)
-            color_subs.append({'Name': cname, 'Description': f'{cname} shield' + (' (a smoky dark tint).' if rgb is None else '.'),
+            color_subs.append({'Name': cname, 'Description': 'Smoky dark tint.' if rgb is None else f'{cname}.',
                                 'Image': f'images/{key}_color_{slug(cname)}.png', 'Include': [f'{F}/Color/{cname}']})
-        options.append({'Name': sh['name'], 'Description': sh['desc'] + ' Pick the style here and the color in the next option.',
+        options.append({'Name': sh['name'], 'Description': sh['desc'],
                         'Image': f'images/{key}.png', 'Include': [f'{F}/Textures'], 'SubOptions': style_subs})
         options.append({'Name': f'{sh["short"]} - Color',
-                        'Description': f'Color of the {sh["short"]}: {sh["colored"]}. Works with any style. The effects are recolored even while '
-                                       f'the {sh["short"]} option above is off: set this to Default too to leave this shield to another mod.',
+                        'Description': f'Color of the {sh["colored"]}. Effects follow it even with the style option off.',
                         'Image': f'images/{key}_color.png', 'SubOptions': color_subs})
     name = f'Better Bubble Shields - {VERSION}' + (f' Test {TEST}' if TEST else '')
     man = {'Version': 1, 'Guid': TEST_GUID if TEST else LIVE_GUID, 'Name': name,
-           'Description': ("Every bubble shield your way (formerly Clear Bubble Shields). For each shield, pick a style: Honeycomb "
-               "(keeps the honeycomb, no swirling cloud or ripple), Clear - Medium (50%), Clear - Low (25%) or Invisible; and, in its "
-               "own dropdown, a color: the game's own, White, Red, Orange, Yellow, Green, Cyan, Blue, Purple, Pink or Dark. "
-               "The color also covers the generator glow, the hit flash and the break effect. To keep a shield vanilla, turn it off and set its color to Default. Covers the FX-12 Shield Generator Relay, G/SH-39 Shield, SH-51 Directional Shield "
-               "and SH-32 Shield Generator Pack. Built for the September 2026 game version; after a game update "
-               "that changes these shields the mod is rebuilt from the new game files. Inspired by Muchacho5894's 'Bubble Shields - No honeycomb - No cloud "
-               "- 0.1 Opacity' (Nexus mod 14108); this mod uses its own textures."),
+           'Description': ("Pick a style (Honeycomb, Clear - Medium, Clear - Low or Invisible) and a color for every bubble shield, "
+               "including its generator glow, hit flash and break effect. Covers the FX-12 Relay, G/SH-39, SH-51 Directional "
+               "and SH-32 Shield Generator Pack. Formerly Clear Bubble Shields."),
            'IconPath': 'thumbnail.png', 'Options': options}
     json.dump(man, open(f'{OUT}/manifest.json', 'w'), indent=2)
     # stamp: which game files this build used (update.py compares against it after a game patch)
