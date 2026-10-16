@@ -1,5 +1,11 @@
 # Changelog
 
+## v7.0.2
+- The Shield Generator Pack's hit flash now follows its Color option. The Pack has its own hit-flash layer, which always stayed the game's yellow.
+- The Pack's styles no longer dim the glow of three Illuminate effects that share a material with the Pack: those effects are shipped pointed at an untouched copy of it.
+- Shorter, corrected texts in the mod manager and on the page (the Pack's bubble is not the Relay / G/SH-39 bubble; Invisible no longer promises a bubble hit flash).
+- More patch-proofing checks in the update script.
+
 ## v7.0.1
 - The Invisible style's hit flash now follows the Color option too (it kept the game's color).
 - Every style is now built from the game's own shield material, re-extracted from the game at build time, with only the style's changes applied; the build stops with a plain message if the game changes what a style relies on.
