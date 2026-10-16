@@ -14,6 +14,9 @@ import hashlib, json, os, struct, subprocess, sys
 from hd2_patch import resource_hash
 
 MATERIAL, UNIT, PARTICLES, TEXTURE = 'eac0b497876adedf', 'e0a48d0be9a7453f', 'a8193123526fad64', 'cd4238c6a0c69e32'
+PACKAGE = 'ad9c6d9ed1e5e77a'
+# other types that could reference a material the mod changes in place (checked for the Pack hit-flash material)
+OTHER_REF_TYPES = {'prefab': 'ab2f78e885f513c6', 'entity': '9831ca893b0d087d', 'geometry_group': 'c4f0f4be7fb0c8d6', 'level': '2a690fd348fe9ac5'}
 BASE = 'content/fac_helldivers/'
 SHIELD_UNITS = {   # the shield's device; its archive holds the device's own effects
     'relay': BASE + 'hellpod/energy_shield/energy_shield',
@@ -26,6 +29,8 @@ BUBBLE_UNITS = [0xc6e942a840ef3e09, 0x274d3f4191c8320c, resource_hash(BASE + 'eq
 BUBBLE_OF = {'relay': 0, 'grenade': 1, 'directional': 2}   # index into BUBBLE_UNITS
 EDGE_MATS = [0x4aa3db36d543a125, 0xff5ae79ce33fd342]
 BUBBLE_SHADER, DOME_SHADER = 0x717b4e0431528b44, 0xc9373e9ef86d372c
+HIT_SHADER = 0x710c537aa172aa6c   # the Shield Pack's own bubble: a hit-flash-only layer (glows only where it's hit)
+KNOWN_PACK_HIT = '867e566b2adb86b4'   # its material on the September/October 2026 builds, only used to report a move
 # ids found on the September 2026 build, only used to report what moved
 KNOWN_FX = {'relay': ['438301bc21965f45', 'bdab1d123cb4b577'], 'grenade': ['2970dc9e5d8c665c', '3169d7e999299bae', 'b9121e86d3cdc226'],
             'pack': ['1cbc1844b252f92b', 'd0890b4b8276a347'], 'directional': ['7d8d944aad609c4e']}
@@ -71,7 +76,7 @@ def main():
             if (v, kind) in rows and v not in out: out.append(v)
         return out
     def parent(m): return struct.unpack_from('<Q', blob(m, MATERIAL), 24)[0]
-    problems, inputs = [], {'fx': {}, 'fx_materials': [], 'luts': {}, 'bubble_units': [], 'edge_materials': [], 'base_materials': {}}
+    problems, inputs = [], {'fx': {}, 'fx_materials': [], 'luts': {}, 'bubble_units': [], 'edge_materials': [], 'base_materials': {}, 'pack_hit_material': None, 'pack_shared_fx': {}}
     devices = {}
     for key, uname in SHIELD_UNITS.items():
         uid = '%016x' % resource_hash(uname)
@@ -84,8 +89,16 @@ def main():
         kept = sorted(i for (i, t), r in rows.items() if t == PARTICLES and i in KNOWN_FX[key] and i not in fx
                       and len(r['arch']) <= 2 and set(r['arch']) & arch)
         if kept:
-            print(f'WARNING {key}: {kept} also live in another archive ' +
-                  str(sorted({a for i in kept for a in rows[(i, PARTICLES)]['arch']} - arch)) + '; kept as in v7: check they are only this device\'s effects')
+            extra = sorted({a for i in kept for a in rows[(i, PARTICLES)]['arch']} - arch)
+            names = [rows.get((a, PACKAGE), {}).get('name', '') for a in extra]
+            # this shield's own loadout packages: 'packages/generated/loadout/<a folder of the device's path>' (by hash,
+            # since not every package name is in the game's name list), e.g. directional_energy_shield
+            own_pkgs = {'%016x' % resource_hash('packages/generated/loadout/' + f) for f in uname.split('/')[:-1]}
+            own = all(a in own_pkgs for a in extra)
+            if not own:                              # the other archive is not this shield's own loadout package
+                where = ', '.join('%s (%s)' % (a, n or 'unnamed') for a, n in zip(extra, names))
+                print(f'WARNING {key}: {kept} also live in {where}; '
+                      'kept as in v7: check they are only this device\'s effects')
             fx = sorted(fx + kept)
         if not fx: problems.append(f'{key}: no effects of its own found')
         if fx != KNOWN_FX[key]: print(f'{key}: effects moved: {KNOWN_FX[key]} -> {fx}')
@@ -131,21 +144,63 @@ def main():
             if not own: problems.append(f'{key}: its device material table (was {KNOWN_LUTS[key]}) is gone or now shared with other things'); continue
             if own[0] != KNOWN_LUTS[key]: print(f'{key}: device material table moved: {KNOWN_LUTS[key]} -> {own[0]}')
         if own: inputs['luts'][key] = own[0]
+    # the Shield Pack's hit flash (v7.0.2): the Pack's shield is its own model in the bubble models' package, with one
+    # material on the hit-flash shader (the other material on that shader is the Illuminate's, in their own package)
+    bubble_pkgs = set(rows[(inputs['bubble_units'][1], UNIT)]['arch'])
+    cands = sorted(i for (i, t), r in rows.items() if t == MATERIAL and set(r['arch']) & bubble_pkgs)
+    get([(m, MATERIAL) for m in cands])
+    hit = [m for m in cands if parent(m) == HIT_SHADER]
+    if len(hit) != 1: problems.append(f'pack: expected one hit-flash material (shader {HIT_SHADER:016x}) next to the bubble models, found {hit or "none"}')
+    else:
+        inputs['pack_hit_material'] = hit[0]
+        if hit[0] != KNOWN_PACK_HIT: print(f'pack: hit-flash material moved: {KNOWN_PACK_HIT} -> {hit[0]}')
+    for m in cands:                    # keep game/ to what the build uses
+        if m not in hit and m not in inputs['base_materials'].values() and m not in inputs['edge_materials'] and m not in inputs['fx_materials'] \
+                and m not in {x for ms in dev_mats.values() for x in ms} and m not in {x for ms in bub_mats.values() for x in ms}:
+            os.remove('game/0x%s.%s.main' % (m, MATERIAL))
+            if os.path.exists('game/0x%s.%s.gpu' % (m, MATERIAL)): os.remove('game/0x%s.%s.gpu' % (m, MATERIAL))
     if problems: raise Fail('\n  '.join(problems))
     get([(l, TEXTURE) for l in inputs['luts'].values()] + [(m, MATERIAL) for m in inputs['base_materials'].values()])
     # the Pack Style option changes the dome and edge materials in place (a particle effect can only be pointed at
     # them by shipping the effect): check nothing but the Pack's own effects uses them
     pack_only = [inputs['base_materials']['pack']] + inputs['edge_materials']
+    if inputs['pack_hit_material']:   # recolored in place by the Pack Color option: it must be the Pack shield's alone
+        g.cmd('grep', UNIT, struct.pack('<Q', int(inputs['pack_hit_material'], 16)).hex(), 'game/pack_hit_units.tsv')
+        g.cmd('grep', PARTICLES, struct.pack('<Q', int(inputs['pack_hit_material'], 16)).hex(), 'game/pack_hit_fx.tsv')
+        for name, t in OTHER_REF_TYPES.items():
+            g.cmd('grep', t, struct.pack('<Q', int(inputs['pack_hit_material'], 16)).hex(), f'game/pack_hit_{name}.tsv')
+        users = [l.split('\t')[0] for l in open('game/pack_hit_units.tsv') if l.strip()]
+        fx_users = [l.split('\t')[0] for l in open('game/pack_hit_fx.tsv') if l.strip()]
+        more = [f'{name} {l.split(chr(9))[0]}' for name in OTHER_REF_TYPES for l in open(f'game/pack_hit_{name}.tsv') if l.strip()]
+        if len(users) != 1 or fx_users or more:
+            g.close(); raise Fail(f"the Pack hit-flash material {inputs['pack_hit_material']} is used by units {users}, effects {fx_users} "
+                                  f"and {more or 'nothing else'}; expected one unit and nothing else")
     g.cmd('grep', PARTICLES, ','.join(struct.pack('<Q', int(m, 16)).hex() for m in pack_only), 'game/pack_refs_fx.tsv')
     g.cmd('grep', UNIT, ','.join(struct.pack('<Q', int(m, 16)).hex() for m in pack_only), 'game/pack_refs_units.tsv')
-    others = []
+    # v7.0.2: other effects that use these materials (three Illuminate effects use the Pack edge material) are shipped
+    # by the Pack Style option pointed at an untouched copy of the material, so they keep the game's look. A unit
+    # using them can't be handled that way and needs a person.
+    others, shared_fx = [], {}
     for f, kind in (('game/pack_refs_fx.tsv', 'effect'), ('game/pack_refs_units.tsv', 'unit')):
         for l in open(f):
             p = l.rstrip('\n').split('\t')
             if kind == 'effect' and p[0] in inputs['fx']['pack']: continue
-            others.append(f'{kind} {p[0]} {p[1]} uses {pack_only[int(p[2][3:])]}')
+            mat = pack_only[int(p[2][3:])]
+            if kind == 'effect': shared_fx.setdefault(p[0], []).append(mat)
+            else: others.append(f'unit {p[0]} {p[1]} uses {mat}')
+    if others:
+        g.close(); raise Fail('the Shield Pack materials the Style option changes are used by other models:\n  ' + '\n  '.join(others))
+    both = sorted(i for i in shared_fx if i in seen)   # the Style option would ship a file a Color option ships too
+    if both:
+        g.close(); raise Fail('effects ' + ', '.join(f'{i} ({seen[i]})' for i in both) + ' are a shield\'s own effects (shipped by its '
+                              'Color option) and also use a Pack material the Pack Style option changes: the two options would '
+                              'overwrite each other')
+    inputs['pack_shared_fx'] = {k: sorted(set(v)) for k, v in sorted(shared_fx.items())}
+    if shared_fx:
+        get([(i, PARTICLES) for i in shared_fx])
+        print(f'pack: {len(shared_fx)} other effects use the Pack materials the Style option changes; they are shipped '
+              f'pointed at untouched copies: {sorted(shared_fx)}')
     g.close()
-    if others: raise Fail('the Shield Pack materials the Style option changes are used outside the Pack:\n  ' + '\n  '.join(others))
     files = sorted(f for f in os.listdir('game') if f.startswith('0x'))
     stamp = {f: hashlib.md5(open('game/' + f, 'rb').read()).hexdigest() for f in files}
     old = json.load(open('game/built_from.json')) if os.path.exists('game/built_from.json') else None
