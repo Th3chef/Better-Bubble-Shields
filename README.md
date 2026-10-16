@@ -4,7 +4,7 @@
 
 **Every bubble shield in Helldivers 2 your way.** Pick a style and one of 11 colors for each shield separately, in your mod manager. The color covers the whole shield: the bubble, its hit flash, the glow on its generator and the effect when it breaks. Formerly *Clear Bubble Shields*.
 
-Current version: **v7.0.1** · [Download](https://github.com/Th3chef/Better-Bubble-Shields/releases/latest) (`Better-Bubble-Shields-v7.0.1.zip` under Assets, not the source code)
+Current version: **v7.0.2** · [Download](https://github.com/Th3chef/Better-Bubble-Shields/releases/latest) (`Better-Bubble-Shields-v7.0.2.zip` under Assets, not the source code)
 
 ![Gallery](media/gallery.png)
 
@@ -14,7 +14,7 @@ Current version: **v7.0.1** · [Download](https://github.com/Th3chef/Better-Bubb
 - **Honeycomb** (default): keeps the honeycomb but removes the swirling cloud and ripple, and is much more see-through.
 - **Clear - Medium**: no honeycomb or cloud, just an even tint at 50% opacity, so you can still tell where the shield is.
 - **Clear - Low**: no honeycomb or cloud, a faint tint at 25% opacity.
-- **Invisible**: no shield bubble at all. The generator glow, hit flash and break effect still show, in the shield's color.
+- **Invisible**: no shield bubble at all. The generator glow and break effect still show, in the shield's color, and so does the Shield Generator Pack's hit flash.
 
 **Colors** (per shield, in their own dropdown): the game's own color, White, Red, Orange, Yellow, Green, Cyan, Blue, Purple, Pink or Dark (a smoky dark tint). Every color works with every style. The color also covers:
 - the **hit flash** when the bubble is shot,
@@ -31,7 +31,7 @@ Colors are brightness-matched, so blue and purple look as bright as the game's d
 - **FX-12 Shield Generator Relay** (the dome, the generator's glow and the break effect)
 - **G/SH-39 Shield** (the shield grenade: the bubble, the grenade's glow and the break effect)
 - **SH-51 Directional Shield** (the shield panel and its break effect)
-- **SH-32 Shield Generator Pack** (the dome, its glowing layer and the line along its top, the glow on the backpack and the break effect)
+- **SH-32 Shield Generator Pack** (the dome, its glowing layer and the line along its top, its hit flash, the glow on the backpack and the break effect)
 
 ## Options
 
@@ -48,7 +48,7 @@ Each shield has two options in your mod manager:
 
 ## Install / update
 
-**Mod manager (recommended):** add `Better-Bubble-Shields-v7.0.1.zip` to Arsenal, open the mod's options, tick the shields you want, pick a style and a color for each, then confirm and deploy.
+**Mod manager (recommended):** add `Better-Bubble-Shields-v7.0.2.zip` to Arsenal, open the mod's options, tick the shields you want, pick a style and a color for each, then confirm and deploy.
 
 **Updating:** it installs as an update and your settings stay; then Purge and Deploy.
 **Updating from Clear Bubble Shields v5 or older:** it's the same mod, so it installs as an update. The options changed, so open them and pick your settings again.
@@ -63,16 +63,17 @@ Disable or remove the mod in your mod manager and deploy, or delete the patch fi
 
 - Conflicts with other mods that change the same shields: the bubble models of the Relay, G/SH-39 Shield and Directional Shield, the Shield Generator Pack's dome effect and, with a color picked, the shields' generator glow and break effects. Whichever mod loads last wins for that shield. To leave a shield to the other mod, untick it here **and** set its Color option to Default (a picked color still recolors that shield's glow and break effects).
 - Does not touch armor, weapons, backpack models or any other visuals. The effect materials the shields share with other effects in the game are never changed: the mod uses its own recolored copies.
+- The Shield Generator Pack option also ships three Illuminate effect files, unchanged except that they point at an untouched copy of a material they share with the Pack, so they keep the game's look whatever Pack style you pick. A mod that changes those Illuminate effects can conflict.
 - Built for the September 2026 game version. After a game update the build checks the game's shield files and is rebuilt from them in one step if they changed.
 
 ## Known limitations
 
-- The Shield Generator Pack's bubble is the same model as the Relay and G/SH-39 bubbles, so the Pack's bubble and its hit flash follow those shields' Style and Color. The Pack's own options cover its glowing dome layer, the glow on the backpack and its break effect.
+- The bubble's color (Relay, G/SH-39 and Directional Shield) only shows while that shield's option is ticked.
 - A Color option still recolors the shield's glow and break effects while its shield option is off (mod managers can't make one option depend on another). Set it to Default to keep that shield vanilla.
 
 ## How it works
 
-Each shield's bubble model is pointed at the mod's own materials, one per style, so the style and the color can be picked in separate dropdowns. Every style starts from the game's own shield material, taken from your game when the mod is built, with only the style's changes applied. The honeycomb and cloud texture slots use tiny plain textures of the mod's own. The Shield Generator Pack's dome is a particle effect, so its color is set in that effect and its brightness in its materials. A Color option also sets the bubble's hit-flash color and ships the shield's own glow and break effects with their colors changed; the materials those effects share with other effects are pointed at the mod's own recolored copies, so nothing outside these shields changes.
+Each shield's bubble model is pointed at the mod's own materials, one per style, so the style and the color can be picked in separate dropdowns. Every style starts from the game's own shield material, taken from your game when the mod is built, with only the style's changes applied. The honeycomb and cloud texture slots use tiny plain textures of the mod's own. The Shield Generator Pack's dome is a particle effect, so its color is set in that effect and its brightness in its materials. The Shield Generator Pack's hit flash is a separate layer of its own that only lights up where it's hit; its Color option sets that color too. A Color option also sets the bubble's hit-flash color and ships the shield's own glow and break effects with their colors changed; the materials those effects share with other effects are pointed at the mod's own recolored copies, so nothing outside these shields changes.
 
 | Shield | Vanilla | Better Bubble Shields |
 |---|---|---|
@@ -94,8 +95,8 @@ Everything that builds the release zip is in [`src/`](src) (run the commands fro
 
 1. Python 3 with Pillow and NumPy. Go 1.25+ to build the extractor.
 2. Build the extractor (`src/tools/hd2raw`, a small lister/extractor on top of [Filediver](https://github.com/xypwn/filediver)'s reader); see `src/tools/hd2raw/README.txt`.
-3. `python tools/unpack_release.py Better-Bubble-Shields-v7.0.1.zip` recreates `v5-options/` from the release zip: the mod's own textures, plus old copies of the style materials that are only used while `game/` has no copy of the game's own yet.
-4. `python update.py "<Helldivers 2>/data"` finds and extracts the game files the build needs into `game/`, including the game materials each style starts from, and checks that the Shield Generator Pack materials the mod changes are used only by the Pack. Exit code 0 = no update needed, 2 = the game's files changed (rebuild), 1 = needs a person.
+3. `python tools/unpack_release.py Better-Bubble-Shields-v7.0.2.zip` recreates `v5-options/` from the release zip: the mod's own textures, plus old copies of the style materials that are only used while `game/` has no copy of the game's own yet.
+4. `python update.py "<Helldivers 2>/data"` finds and extracts the game files the build needs into `game/`, including the game materials each style starts from, and checks what the Shield Generator Pack materials the mod changes are used by: other effects (three Illuminate effects today) are shipped pointed at untouched copies, anything else stops the update. It also finds the Pack's hit-flash material and checks only the Pack uses it. Exit code 0 = no update needed, 2 = the game's files changed (rebuild), 1 = needs a person.
 5. `python build_v7.py`, `python icons_v7.py`, then `python make_zip.py`, which zips `build/` reproducibly (sorted names, fixed dates and permissions) into the zip named in the manifest.
 
 On the same game files the patch files and `manifest.json` come out byte for byte the same as the release. The images (thumbnail and option icons) depend on your Pillow and zlib versions, so the whole zip matches a release made with `make_zip.py` (v7.0.1 and later) byte for byte only with the same Pillow and zlib; two builds on one machine always give the same zip.
